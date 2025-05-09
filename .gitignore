@@ -31,3 +31,7 @@ yarn-error.log*
 # Ignorar node_modules del backend
 /backend/node_modules
 
+# Ignorar archivos temporales
+node_modules/
+.cache/
+*.pack
