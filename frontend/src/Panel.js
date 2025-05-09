@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import {
+  getServidores,
+  encenderServidorAPI,
+  apagarServidorAPI,
+} from "./api";
+import { PieChart, Pie, Cell, Tooltip } from 'recharts';
 
 function Panel() {
   const [servidores, setServidores] = useState([]);
@@ -12,29 +17,25 @@ function Panel() {
   const token = localStorage.getItem("token");
   const usuario = token ? jwtDecode(token) : null;
 
-  useEffect(() => {
-    const servidoresGuardados = JSON.parse(localStorage.getItem("servidores"));
-    if (servidoresGuardados && servidoresGuardados.length > 0) {
-      setServidores(servidoresGuardados);
-    } else {
-      axios
-        .get("http://localhost:3001/api/servidores", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => {
-          const servidoresConEstado = res.data.map((s) => ({
-            ...s,
-            estado: "online",
-          }));
-          setServidores(servidoresConEstado);
-          localStorage.setItem("servidores", JSON.stringify(servidoresConEstado));
-        })
-        .catch((err) => console.error("Error al obtener servidores:", err));
-    }
+  const actualizarServidores = (nuevosServidores) => {
+    setServidores(nuevosServidores);
+    localStorage.setItem("servidores", JSON.stringify(nuevosServidores));
+  };
 
+  const cargarServidores = async () => {
+    try {
+      const data = await getServidores(token);
+      actualizarServidores(data);
+    } catch (err) {
+      console.error("Error al cargar servidores:", err);
+    }
+  };
+
+  useEffect(() => {
+    cargarServidores();
     const eventosGuardados = JSON.parse(localStorage.getItem("eventos") || "[]");
     setEventos(eventosGuardados);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cerrarSesion = () => {
     localStorage.removeItem("token");
@@ -50,70 +51,64 @@ function Panel() {
     localStorage.setItem("eventos", JSON.stringify(nuevosEventos));
   };
 
-  const actualizarServidores = (nuevosServidores) => {
-    setServidores(nuevosServidores);
-    localStorage.setItem("servidores", JSON.stringify(nuevosServidores));
+  const encenderServidor = async (id) => {
+    try {
+      await encenderServidorAPI(id, token);
+      await cargarServidores();
+      const nombre = servidores.find((s) => String(s.id) === String(id))?.nombre || `Servidor ${id}`;
+      actualizarEventos(`🟢 ${nombre} ha sido encendido`);
+      toast.success(`${nombre} encendido correctamente`);
+    } catch (err) {
+      console.error("Error al encender servidor:", err);
+      toast.error("Error al encender el servidor");
+    }
   };
 
-  const encenderServidor = (id) => {
-    const nombreServidor = servidores.find((s) => s.id === id)?.nombre;
-    const nuevos = servidores.map((srv) =>
-      srv.id === id ? { ...srv, estado: "online" } : srv
-    );
-    actualizarServidores(nuevos);
-    actualizarEventos(`🟢 ${nombreServidor} ha sido encendido`);
-    toast.success(`${nombreServidor} encendido correctamente`);
-  };
-
-  const apagarServidor = (id) => {
-    const nombreServidor = servidores.find((s) => s.id === id)?.nombre;
-    const nuevos = servidores.map((srv) =>
-      srv.id === id ? { ...srv, estado: "offline" } : srv
-    );
-    actualizarServidores(nuevos);
-    actualizarEventos(`🔴 ${nombreServidor} ha sido apagado`);
-    toast.warn(`${nombreServidor} ha sido apagado`);
+  const apagarServidor = async (id) => {
+    try {
+      await apagarServidorAPI(id, token);
+      await cargarServidores();
+      const nombre = servidores.find((s) => String(s.id) === String(id))?.nombre || `Servidor ${id}`;
+      actualizarEventos(`🔴 ${nombre} ha sido apagado`);
+      toast.warn(`${nombre} ha sido apagado`);
+    } catch (err) {
+      console.error("Error al apagar servidor:", err);
+      toast.error("Error al apagar el servidor");
+    }
   };
 
   const reiniciarServidor = (id) => {
-    const nombreServidor = servidores.find((s) => s.id === id)?.nombre;
+    const nombreServidor = servidores.find((s) => String(s.id) === String(id))?.nombre;
     const enReinicio = servidores.map((srv) =>
-      srv.id === id ? { ...srv, estado: "Reiniciando..." } : srv
+      String(srv.id) === String(id) ? { ...srv, estado: "Reiniciando..." } : srv
     );
     actualizarServidores(enReinicio);
     actualizarEventos(`🔁 ${nombreServidor} se está reiniciando`);
     toast.info(`${nombreServidor} se está reiniciando...`);
 
-    setTimeout(() => {
-      const actual = JSON.parse(localStorage.getItem("servidores")) || [];
-      const reiniciado = actual.map((srv) =>
-        srv.id === id ? { ...srv, estado: "online" } : srv
-      );
-      actualizarServidores(reiniciado);
-      actualizarEventos(`✅ ${nombreServidor} ha vuelto a estar online`);
-      toast.success(`${nombreServidor} está online`);
+    setTimeout(async () => {
+      try {
+        await encenderServidorAPI(id, token);
+        await cargarServidores();
+        actualizarEventos(`✅ ${nombreServidor} ha vuelto a estar online`);
+        toast.success(`${nombreServidor} está online`);
+      } catch (err) {
+        console.error("Error al reiniciar servidor:", err);
+        toast.error("Error al reiniciar el servidor");
+      }
     }, 3000);
   };
 
   const restablecerServidores = () => {
-    if (
-      !window.confirm("¿Estás seguro de que quieres restablecer todos los servidores y borrar el historial?")
-    ) {
+    if (!window.confirm("¿Estás seguro de que quieres restablecer todos los servidores y borrar el historial?")) {
       return;
     }
 
     setLoadingReset(true);
 
-    axios
-      .get("http://localhost:3001/api/servidores", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    getServidores(token)
       .then((res) => {
-        const servidoresRestablecidos = res.data.map((s) => ({
-          ...s,
-          estado: "online",
-        }));
-        actualizarServidores(servidoresRestablecidos);
+        actualizarServidores(res);
         toast.success("Servidores restablecidos y online");
 
         setEventos([]);
@@ -128,6 +123,19 @@ function Panel() {
       .finally(() => {
         setLoadingReset(false);
       });
+  };
+
+  const renderCpuBar = (cpuString) => {
+    const value = parseFloat(cpuString);
+    if (isNaN(value)) return null;
+    return (
+      <div className="w-full bg-gray-200 rounded h-2 mt-1">
+        <div
+          className="h-2 rounded"
+          style={{ width: `${value}%`, backgroundColor: value > 80 ? '#dc2626' : '#60a5fa' }}
+        ></div>
+      </div>
+    );
   };
 
   return (
@@ -164,7 +172,7 @@ function Panel() {
                 Restableciendo...
               </>
             ) : (
-              <> Restablecer Servidores</>
+              <>Restablecer Servidores</>
             )}
           </button>
 
@@ -191,7 +199,39 @@ function Panel() {
                   </span>
                 </p>
                 <p><strong>CPU:</strong> {srv.cpu}</p>
+                {renderCpuBar(srv.cpu)}
                 <p><strong>RAM:</strong> {srv.ram}</p>
+
+                {srv.ram && srv.ram.includes("/") && (() => {
+                  const [used, total] = srv.ram.split("/").map(val => parseFloat(val));
+                  const data = [
+                    { name: "Usado", value: used },
+                    { name: "Libre", value: total - used }
+                  ];
+                  const COLORS = ["#FF8042", "#00C49F"];
+                  return (
+                    <div className="mt-2">
+                      <PieChart width={100} height={100}>
+                        <Pie
+                          data={data}
+                          cx={50}
+                          cy={50}
+                          innerRadius={30}
+                          outerRadius={40}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                      <p className="text-sm text-center">Uso de RAM</p>
+                    </div>
+                  );
+                })()}
+
                 <div className="mt-2">
                   <strong>Servicios:</strong>
                   <ul className="list-disc list-inside text-gray-700">
