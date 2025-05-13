@@ -27,3 +27,19 @@ export const apagarServidorAPI = async (id, token) => {
     headers: { Authorization: `Bearer ${token}` }, // Autenticación con token
   });
 };
+
+// Función para reiniciar un servidor (por ID) a través de la API
+// Esta función envía una petición POST a la API para reiniciar un servidor
+// y espera 3 segundos antes de encenderlo nuevamente.
+export async function reiniciarServidorAPI(id, token) {
+  await apagarServidorAPI(id, token);
+  setTimeout(() => encenderServidorAPI(id, token), 3000);
+}
+
+// Función para ejecutar un comando en el VPS real por SSH
+export const ejecutarComandoSSH = async (comando, token) => {
+  const res = await axios.post(`${API_URL}/ssh`, { comando }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data; // Contiene stdout y stderr
+};
