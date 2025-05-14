@@ -1,74 +1,59 @@
-// Importa React y los hooks necesarios
 import React, { useState } from "react";
-
-// Importa axios para hacer peticiones HTTP
 import axios from "axios";
-
-// Hook de React Router para redirigir al usuario
 import { useNavigate } from "react-router-dom";
 
 function Login() {
-  // Estados locales para email, password y error
-  const [email, setEmail] = useState("");         // Almacena el email del usuario
-  const [password, setPassword] = useState("");   // Almacena la contraseña
-  const [error, setError] = useState("");         // Mensaje de error si las credenciales fallan
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const navigate = useNavigate(); // Hook para redirigir programáticamente
+  const navigate = useNavigate();
 
-  // Función que se ejecuta al enviar el formulario
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Evita que la página se recargue
-
+    e.preventDefault();
     try {
-      // Envía los datos al backend usando axios
-      const res = await axios.post("http://localhost:3001/api/login", {
-        email,
-        password,
-      });
-
-      // Guarda el token recibido en localStorage para futuras autenticaciones
+      const res = await axios.post("http://localhost:3001/api/login", { email, password });
       localStorage.setItem("token", res.data.token);
-      console.log("Token recibido:", res.data.token); // Útil para depuración
-
-      // Redirige al usuario al panel protegido tras login exitoso
+      console.log("Token recibido:", res.data.token);
       navigate("/panel");
     } catch (err) {
-      // Si falla, muestra mensaje de error en la interfaz
       console.error("Error al iniciar sesión:", err);
       setError("Credenciales incorrectas");
     }
   };
 
   return (
-    // Contenedor centrado vertical y horizontalmente, con fondo gris claro
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      {/* Formulario con estilo simple y centrado */}
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-80">
-        <h2 className="text-2xl font-bold mb-4 text-center">Iniciar sesión</h2>
+    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] text-white">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-[#1e293b] p-8 rounded-2xl shadow-xl w-full max-w-md"
+      >
+        <h2 className="text-2xl font-bold text-center mb-6">Iniciar sesión</h2>
 
-        {/* Si hay un error, se muestra aquí */}
-        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
-        {/* Campo de correo electrónico */}
+        <label className="block text-sm mb-1">Correo</label>
         <input
           type="email"
           placeholder="Correo"
-          className="w-full mb-3 p-2 border rounded"
+          className="w-full px-4 py-2 mb-4 text-white bg-[#334155] border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={email}
-          onChange={(e) => setEmail(e.target.value)} // Actualiza el estado email
+          onChange={(e) => setEmail(e.target.value)}
         />
 
-        {/* Campo de contraseña */}
+        <label className="block text-sm mb-1">Contraseña</label>
         <input
           type="password"
           placeholder="Contraseña"
-          className="w-full mb-3 p-2 border rounded"
+          className="w-full px-4 py-2 mb-6 text-white bg-[#334155] border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={password}
-          onChange={(e) => setPassword(e.target.value)} // Actualiza el estado password
+          onChange={(e) => setPassword(e.target.value)}
         />
 
-        {/* Botón para enviar el formulario */}
-        <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold w-full p-2 rounded">
+        <button
+          type="submit"
+          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition duration-300"
+        >
           Entrar
         </button>
       </form>
@@ -76,5 +61,4 @@ function Login() {
   );
 }
 
-// Exporta el componente para ser usado en App.js
 export default Login;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+
 function SettingsPage({ onClose }) {
   const [tema, setTema] = useState("dark");
   const [mostrarAvanzado, setMostrarAvanzado] = useState(true);
@@ -23,9 +24,10 @@ const handleGuardar = () => {
   alert("Configuración guardada");
 };
 
-  
 
   return (
+
+    
     <div className="bg-gray-900 p-6 text-white rounded-lg shadow-lg max-w-3xl mx-auto mt-6">
       <h2 className="text-2xl font-bold mb-4">Configuración</h2>
 

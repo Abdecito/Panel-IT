@@ -10,6 +10,10 @@ import {
 } from "recharts";
 import { getServidores } from "./api";
 import { useSearch } from "./context/SearchContext";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+
+
 
 function DashboardPage() {
   const [cpuData, setCpuData] = useState([]);
@@ -78,11 +82,49 @@ function DashboardPage() {
     );
   });
 
+  const generarReportePDF = async () => {
+  const input = document.getElementById("dashboard-contenido");
+  if (!input) return;
+
+  const canvas = await html2canvas(input);
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jsPDF("p", "mm", "a4");
+  const imgProps = pdf.getImageProperties(imgData);
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+  pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+  pdf.save("reporte-dashboard.pdf");
+};
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-white mb-4">Resumen de gráficos de los servidores</h2>
       <p className="text-gray-300 mb-6">Aquí puedes ver un resumen general del uso de recursos.</p>
 
+<button
+  onClick={generarReportePDF}
+  className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-md bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-5 w-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 11V3m0 8l-3-3m3 3l3-3m-9 7h12a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2z"
+    />
+  </svg>
+  Generar Reporte PDF
+</button>
+
+  {/* DIV Envolvente */}
+    <div id="dashboard-contenido">
       {renderGraph("Uso de CPU (%)", cpuData, "#F43F5E", 100, "%")}
       {renderGraph("Uso de RAM (GB)", ramData, "#8B5CF6", 16, " GB")}
       {renderGraph("Tráfico de Red (Kbps)", networkData, "#10B981", 600, " Kbps")}
@@ -117,7 +159,9 @@ function DashboardPage() {
         ))}
       </div>
     </div>
-  );
+  </div>
+);
+
 }
 
 export default DashboardPage;
