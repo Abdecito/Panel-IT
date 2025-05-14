@@ -7,13 +7,15 @@ import {
   Settings,
   Pin,
   BadgeCheck,
-  Search
+  Search,
+  LayoutDashboard 
 } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { jwtDecode } from "jwt-decode";
 import { useSearch } from "./context/SearchContext"; 
 import { useRef } from "react";
+import SettingsPage from "./SettingsPage";
 
 
 
@@ -142,12 +144,14 @@ function Layout() {
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
         <aside
-          className={`bg-gray-800 flex flex-col transition-all duration-300 ease-in-out ${
-            expandido ? "w-64" : "w-20"
-          }`}
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
-        >
+ className={`bg-gray-800 flex flex-col transition-[width] duration-300 ease-in-out ${
+  expandido ? "w-64" : "w-20"
+}`}
+
+  onMouseEnter={() => setHover(true)}
+  onMouseLeave={() => setHover(false)}
+>
+
           {/* Botón fijar */}
           <div className="p-2 w-full flex justify-end">
             <button
@@ -166,34 +170,35 @@ function Layout() {
 
           {/* Menú */}
           <nav className="px-2 space-y-2">
-            <NavItem
-              to="/dashboard"
-              icon={<Home size={20} />}
-              text="Dashboard"
-              expandido={expandido}
-              active={location.pathname === "/dashboard"}
-            />
-            <NavItem
-              to="/panel"
-              icon={<Server size={20} />}
-              text="Servidores"
-              expandido={expandido}
-              active={location.pathname === "/panel"}
-            />
-            <NavItem
-              to="/terminal"
-              icon={<Terminal size={20} />}
-              text="Terminal"
-              expandido={expandido}
-              active={location.pathname === "/terminal"}
-            />
-            <NavItem
-              to="/settings"
-              icon={<Settings size={20} />}
-              text="Configuración"
-              expandido={expandido}
-              active={location.pathname === "/settings"}
-            />
+           <NavItem
+  to="/panel"
+  icon={<Server size={20} />}
+  text="Servidores"
+  expandido={expandido}
+  active={location.pathname === "/panel"}
+/>
+<NavItem
+  to="/dashboard"
+  icon={<LayoutDashboard size={20} />}
+  text="Dashboard"
+  expandido={expandido}
+  active={location.pathname === "/dashboard"}
+/>
+<NavItem
+  icon={<Terminal size={20} />}
+  text="Terminal"
+  expandido={expandido}
+  onClick={() => window.open("/terminal-window", "_blank", "width=900,height=600")}
+  active={false}
+/>
+<NavItem
+  to="/settings"
+  icon={<Settings size={20} />}
+  text="Configuración"
+  expandido={expandido}
+  active={location.pathname === "/settings"}
+/>
+
           </nav>
 
           {/* Botón cerrar sesión al fondo */}
@@ -245,7 +250,7 @@ function NavItem({ icon, text, to, onClick, expandido, active }) {
       ) : (
         <button
           onClick={onClick}
-          className="flex items-center px-2 py-2 text-red-400 hover:text-red-300 text-sm w-full transition-all duration-200"
+          className="flex items-center px-2 py-2 text-red-400 hover:text-gray-300 text-sm w-full transition-all duration-200"
         >
           {content}
         </button>

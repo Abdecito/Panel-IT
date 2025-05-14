@@ -207,14 +207,14 @@ app.post("/api/servidores/:id/reiniciar", verificarToken, async (req, res) => {
 
 
 // SSH 
-app.post("/api/ssh", authenticateToken, async (req, res) => {
+app.post("/api/ssh", verificarToken, async (req, res) => {
   const { comando } = req.body;
   if (!comando) return res.status(400).json({ error: "Comando vacío" });
 
-  const ssh = new NodeSSH(); // ✅ crear instancia dentro o antes del handler
+  const ssh = new NodeSSH();
 
   try {
-    const privateKey = fs.readFileSync("/root/.ssh/id_rsa", "utf8"); // ✅ lee el contenido
+    const privateKey = fs.readFileSync("/root/.ssh/id_rsa", "utf8");
 
     await ssh.connect({
       host: "138.199.213.60",
