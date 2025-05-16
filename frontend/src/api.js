@@ -16,16 +16,24 @@ export const getServidores = async (token) => {
 
 // Función para encender un servidor simulado (por ID) a través de la API
 export const encenderServidorAPI = async (id, token) => {
-  await axios.post(`${API_URL}/servidores/${id}/encender`, {}, {
-    headers: { Authorization: `Bearer ${token}` }, // Autenticación con token
-  });
+  await axios.post(
+    `${API_URL}/servidores/${id}/encender`,
+    {},
+    {
+      headers: { Authorization: `Bearer ${token}` }, // Autenticación con token
+    }
+  );
 };
 
 // Función para apagar un servidor simulado (por ID) a través de la API
 export const apagarServidorAPI = async (id, token) => {
-  await axios.post(`${API_URL}/servidores/${id}/apagar`, {}, {
-    headers: { Authorization: `Bearer ${token}` }, // Autenticación con token
-  });
+  await axios.post(
+    `${API_URL}/servidores/${id}/apagar`,
+    {},
+    {
+      headers: { Authorization: `Bearer ${token}` }, // Autenticación con token
+    }
+  );
 };
 
 // Función para reiniciar un servidor (por ID) a través de la API
@@ -38,8 +46,12 @@ export async function reiniciarServidorAPI(id, token) {
 
 // Función para ejecutar un comando en el VPS real por SSH
 export const ejecutarComandoSSH = async (comando, token) => {
-  const res = await axios.post(`${API_URL}/ssh`, { comando }, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await axios.post(
+    `${API_URL}/ssh`,
+    { comando },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
   return res.data; // Contiene stdout y stderr
 };

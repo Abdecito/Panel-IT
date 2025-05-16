@@ -14,7 +14,11 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:3001/api/register", { email, password, rol });
+      await axios.post("http://localhost:3001/api/register", {
+        email,
+        password,
+        rol,
+      });
       setSuccess(true);
       setError("");
       setTimeout(() => navigate("/login"), 2000);
@@ -31,10 +35,16 @@ function Register() {
         onSubmit={handleSubmit}
         className="bg-[#1e293b] p-8 rounded-2xl shadow-xl w-full max-w-md"
       >
-        <h2 className="text-2xl font-bold text-center mb-6">Registrar nuevo usuario</h2>
+        <h2 className="text-2xl font-bold text-center mb-6">
+          Registrar nuevo usuario
+        </h2>
 
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-        {success && <p className="text-green-500 text-sm mb-4">¡Usuario registrado exitosamente!</p>}
+        {success && (
+          <p className="text-green-500 text-sm mb-4">
+            ¡Usuario registrado exitosamente!
+          </p>
+        )}
 
         <label className="block text-sm mb-1">Correo</label>
         <input

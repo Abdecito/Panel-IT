@@ -6,7 +6,7 @@ require("dotenv").config();
 const db = require("./db");
 const si = require("systeminformation");
 const hetzner = require("./hetzner");
-const { NodeSSH } = require('node-ssh');
+const { NodeSSH } = require("node-ssh");
 const ssh = new NodeSSH();
 const fs = require("fs");
 
@@ -29,12 +29,14 @@ app.post("/api/register", (req, res) => {
   }
 
   db.obtenerUsuarioPorEmail(email, (err, row) => {
-    if (err) return res.status(500).json({ mensaje: "Error en la base de datos" });
+    if (err)
+      return res.status(500).json({ mensaje: "Error en la base de datos" });
     if (row) return res.status(400).json({ mensaje: "Usuario ya registrado" });
 
     const passwordHash = bcrypt.hashSync(password, 10);
     db.registrarUsuario(email, passwordHash, rol, (err, userId) => {
-      if (err) return res.status(500).json({ mensaje: "Error al registrar usuario" });
+      if (err)
+        return res.status(500).json({ mensaje: "Error al registrar usuario" });
       res.status(201).json({ mensaje: "Usuario registrado exitosamente" });
     });
   });
@@ -42,16 +44,21 @@ app.post("/api/register", (req, res) => {
 
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ mensaje: "Faltan credenciales" });
+  if (!email || !password)
+    return res.status(400).json({ mensaje: "Faltan credenciales" });
 
   db.obtenerUsuarioPorEmail(email, (err, row) => {
-    if (err) return res.status(500).json({ mensaje: "Error en la base de datos" });
+    if (err)
+      return res.status(500).json({ mensaje: "Error en la base de datos" });
     if (!row) return res.status(401).json({ mensaje: "Usuario no encontrado" });
 
     const passwordValida = bcrypt.compareSync(password, row.passwordHash);
-    if (!passwordValida) return res.status(401).json({ mensaje: "Contraseña incorrecta" });
+    if (!passwordValida)
+      return res.status(401).json({ mensaje: "Contraseña incorrecta" });
 
-    const token = jwt.sign({ email: row.email, rol: row.rol }, JWT_SECRET, { expiresIn: "2h" });
+    const token = jwt.sign({ email: row.email, rol: row.rol }, JWT_SECRET, {
+      expiresIn: "2h",
+    });
     res.json({ token });
   });
 });
@@ -96,18 +103,52 @@ let vpsReal = {
 
 // Servidores simulados
 const servidoresSimulados = [
-  { id: 1, nombre: "Servidor Principal", ip: "10.10.10.1", estado: "offline", servicios: ["Active Directory", "DNS", "DHCP"] },
-  { id: 2, nombre: "Servidor Secundario", ip: "10.10.10.2", estado: "offline", servicios: ["Servicios de impresión", "Servicios de archivos", "FTP"] },
-  { id: 3, nombre: "VPS", ip: "10.10.10.3", estado: "offline", servicios: ["Hosting web", "Base de datos", "Docker"] },
-  { id: 4, nombre: "VPS", ip: "10.10.10.4", estado: "offline", servicios: ["Wordpress", "MySQL", "Kubernetes"] },
-  { id: 5, nombre: "GPU", ip: "10.10.10.5", estado: "offline", servicios: ["Machine Learning", "Renderizado", "Docker"] },
+  {
+    id: 1,
+    nombre: "Servidor Principal",
+    ip: "10.10.10.1",
+    estado: "offline",
+    servicios: ["Active Directory", "DNS", "DHCP"],
+  },
+  {
+    id: 2,
+    nombre: "Servidor Secundario",
+    ip: "10.10.10.2",
+    estado: "offline",
+    servicios: ["Servicios de impresión", "Servicios de archivos", "FTP"],
+  },
+  {
+    id: 3,
+    nombre: "VPS",
+    ip: "10.10.10.3",
+    estado: "offline",
+    servicios: ["Hosting web", "Base de datos", "Docker"],
+  },
+  {
+    id: 4,
+    nombre: "VPS",
+    ip: "10.10.10.4",
+    estado: "offline",
+    servicios: ["Wordpress", "MySQL", "Kubernetes"],
+  },
+  {
+    id: 5,
+    nombre: "GPU",
+    ip: "10.10.10.5",
+    estado: "offline",
+    servicios: ["Machine Learning", "Renderizado", "Docker"],
+  },
 ];
 
 // Obtener todos los servidores incluyendo estado real del VPS
 app.get("/api/servidores", verificarToken, async (req, res) => {
   const simuladosConDatos = servidoresSimulados.map((s) => {
-    const cpu = s.estado === "online" ? `${Math.floor(Math.random() * 40) + 10}%` : "0%";
-    const ram = s.estado === "online" ? `${(Math.random() * 6 + 2).toFixed(1)} / 16.0 GB` : "0 GB";
+    const cpu =
+      s.estado === "online" ? `${Math.floor(Math.random() * 40) + 10}%` : "0%";
+    const ram =
+      s.estado === "online"
+        ? `${(Math.random() * 6 + 2).toFixed(1)} / 16.0 GB`
+        : "0 GB";
     return { ...s, cpu, ram };
   });
 
@@ -143,7 +184,8 @@ app.post("/api/servidores/:id/encender", verificarToken, async (req, res) => {
   }
 
   const servidor = servidoresSimulados.find((s) => s.id === parseInt(id));
-  if (!servidor) return res.status(404).json({ mensaje: "Servidor no encontrado" });
+  if (!servidor)
+    return res.status(404).json({ mensaje: "Servidor no encontrado" });
 
   servidor.estado = "online";
   res.json({ mensaje: `Servidor ${servidor.nombre} encendido` });
@@ -165,7 +207,8 @@ app.post("/api/servidores/:id/apagar", verificarToken, async (req, res) => {
   }
 
   const servidor = servidoresSimulados.find((s) => s.id === parseInt(id));
-  if (!servidor) return res.status(404).json({ mensaje: "Servidor no encontrado" });
+  if (!servidor)
+    return res.status(404).json({ mensaje: "Servidor no encontrado" });
 
   servidor.estado = "offline";
   res.json({ mensaje: `Servidor ${servidor.nombre} apagado` });
@@ -187,13 +230,16 @@ app.post("/api/servidores/:id/reiniciar", verificarToken, async (req, res) => {
       return res.json({ mensaje: "VPS Real reiniciado" });
     } catch (err) {
       console.error("Error al reiniciar VPS real:", err);
-      return res.status(500).json({ mensaje: "Error al reiniciar el VPS real" });
+      return res
+        .status(500)
+        .json({ mensaje: "Error al reiniciar el VPS real" });
     }
   }
 
   // Reiniciar un servidor simulado
   const servidor = servidoresSimulados.find((s) => s.id === parseInt(id));
-  if (!servidor) return res.status(404).json({ mensaje: "Servidor no encontrado" });
+  if (!servidor)
+    return res.status(404).json({ mensaje: "Servidor no encontrado" });
 
   servidor.estado = "offline";
   await sleep(2000);
@@ -202,11 +248,7 @@ app.post("/api/servidores/:id/reiniciar", verificarToken, async (req, res) => {
   res.json({ mensaje: `Servidor ${servidor.nombre} reiniciado` });
 });
 
-
-
-
-
-// SSH 
+// SSH
 app.post("/api/ssh", verificarToken, async (req, res) => {
   const { comando } = req.body;
   if (!comando) return res.status(400).json({ error: "Comando vacío" });
@@ -232,8 +274,6 @@ app.post("/api/ssh", verificarToken, async (req, res) => {
   }
 });
 
-
-
 // Iniciar servidor Express
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`API corriendo en http://0.0.0.0:${PORT}`);
@@ -243,8 +283,6 @@ app.get("/", (req, res) => {
   res.send("Backend funcionando correctamente");
 });
 
-
-
 // Este archivo es el backend de la aplicación. Aquí se configuran las rutas y se manejan las peticiones HTTP.
 // Se utiliza Express para crear un servidor que escucha en el puerto definido en la variable PORT.
 // También se utiliza JWT para la autenticación y bcrypt para el hash de contraseñas.
@@ -252,12 +290,7 @@ app.get("/", (req, res) => {
 // También se simulan servidores y se integran con la API de Hetzner para encender y apagar VPS reales.
 // Las rutas están protegidas por un middleware que verifica el token JWT en las cabeceras de las peticiones.
 // Se utilizan variables de entorno para almacenar información sensible como el secreto del JWT.
-// El servidor escucha en todas las interfaces de red disponibles 
-
-
-
-
-
+// El servidor escucha en todas las interfaces de red disponibles
 
 //Cuando este en producción reemplazar esta ruta /api/ssh por este bloque:
 
@@ -300,6 +333,5 @@ app.post("/api/ssh", authenticateToken, async (req, res) => {
   }
 });
 */
-
 
 // Y cuando este en el vps cambiar la variables de entorno a modoEjecucion=local

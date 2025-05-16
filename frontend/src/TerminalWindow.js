@@ -23,22 +23,22 @@ function TerminalWindow() {
       );
 
       // Guardar comando ejecutado con salida y error (si hay)
-      setHistorial(prev => [
+      setHistorial((prev) => [
         {
           comando,
           salida: response.data.stdout,
-          error: response.data.stderr
+          error: response.data.stderr,
         },
-        ...prev // último comando arriba
+        ...prev, // último comando arriba
       ]);
     } catch (err) {
-      setHistorial(prev => [
+      setHistorial((prev) => [
         {
           comando,
           salida: "",
-          error: "Error al ejecutar el comando."
+          error: "Error al ejecutar el comando.",
         },
-        ...prev
+        ...prev,
       ]);
     } finally {
       setComando(""); // limpiar textarea
@@ -70,7 +70,9 @@ function TerminalWindow() {
 
       {historial.map((item, index) => (
         <div key={index} className="mb-6">
-          <div className="text-white mb-1">🖥 <span className="text-blue-300">{item.comando}</span></div>
+          <div className="text-white mb-1">
+            🖥 <span className="text-blue-300">{item.comando}</span>
+          </div>
 
           {item.salida && (
             <pre className="bg-gray-800 p-2 text-sm whitespace-pre-wrap text-green-300">
