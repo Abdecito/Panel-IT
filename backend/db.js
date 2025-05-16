@@ -1,3 +1,5 @@
+// Este archivo maneja la conexión a la base de datos SQLite y las operaciones relacionadas con los usuarios
+// Importamos el módulo sqlite3
 const sqlite3 = require("sqlite3").verbose();
 
 // Crear y abrir la base de datos

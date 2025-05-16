@@ -1,38 +1,48 @@
-const express = require("express");
-const cors = require("cors");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-require("dotenv").config();
-const db = require("./db");
-const si = require("systeminformation");
-const hetzner = require("./hetzner");
-const { NodeSSH } = require("node-ssh");
-const ssh = new NodeSSH();
-const fs = require("fs");
+// Importamos los módulos necesarios
+const express = require("express"); // Framework para crear el servidor web
+const cors = require("cors"); // Middleware para habilitar CORS (permite peticiones desde otros dominios)
+const jwt = require("jsonwebtoken"); // Para firmar y verificar tokens JWT
+const bcrypt = require("bcryptjs"); // Para encriptar y verificar contraseñas
+require("dotenv").config(); // Carga variables desde el archivo .env
+const db = require("./db"); // Módulo personalizado para interactuar con la base de datos SQLite
+const si = require("systeminformation"); // (No se usa en este archivo, pero puede servir para obtener info del sistema)
+const hetzner = require("./hetzner"); // Módulo para controlar el VPS real mediante la API de Hetzner
+const { NodeSSH } = require("node-ssh"); // Librería para conectarse a un servidor remoto vía SSH
+const ssh = new NodeSSH(); // Instancia de SSH
+const fs = require("fs"); // Módulo para trabajar con el sistema de archivos
 
+// Inicializamos Express
 const app = express();
-const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET;
+const PORT = process.env.PORT || 3001; // Puerto donde se ejecutará la API
+const JWT_SECRET = process.env.JWT_SECRET; // Clave secreta para firmar JWT
 
-app.use(cors());
-app.use(express.json());
+// Middleware globales
+app.use(cors()); // Habilita CORS
+app.use(express.json()); // Permite parsear JSON en los requests
 
+// Ruta simple para verificar que la API está activa
 app.get("/api/status", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Usuarios
+//
+// ============ AUTENTICACIÓN ============
+//
+
+// Registro de usuario
 app.post("/api/register", (req, res) => {
   const { email, password, rol } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: "Faltan credenciales" });
   }
 
+  // Comprobamos si el usuario ya existe
   db.obtenerUsuarioPorEmail(email, (err, row) => {
     if (err)
       return res.status(500).json({ mensaje: "Error en la base de datos" });
     if (row) return res.status(400).json({ mensaje: "Usuario ya registrado" });
 
+    // Hasheamos la contraseña antes de guardar
     const passwordHash = bcrypt.hashSync(password, 10);
     db.registrarUsuario(email, passwordHash, rol, (err, userId) => {
       if (err)
@@ -42,6 +52,7 @@ app.post("/api/register", (req, res) => {
   });
 });
 
+// Login de usuario
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
@@ -56,6 +67,7 @@ app.post("/api/login", (req, res) => {
     if (!passwordValida)
       return res.status(401).json({ mensaje: "Contraseña incorrecta" });
 
+    // Generamos un JWT válido por 2 horas
     const token = jwt.sign({ email: row.email, rol: row.rol }, JWT_SECRET, {
       expiresIn: "2h",
     });
@@ -63,6 +75,11 @@ app.post("/api/login", (req, res) => {
   });
 });
 
+//
+// ============ MIDDLEWARES PARA PROTEGER RUTAS ============
+//
+
+// Verifica que el token JWT sea válido
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -76,6 +93,7 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// Variante más robusta del middleware anterior
 function verificarToken(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -92,7 +110,11 @@ function verificarToken(req, res, next) {
   }
 }
 
-// Estado VPS real en memoria
+//
+// ============ SERVIDORES ============
+//
+
+// Datos del VPS real (Hetzner)
 let vpsReal = {
   id: "local-pc",
   nombre: "VPS Real",
@@ -101,7 +123,7 @@ let vpsReal = {
   servicios: ["Hosting", "Node.js", "React"],
 };
 
-// Servidores simulados
+// Lista de servidores simulados
 const servidoresSimulados = [
   {
     id: 1,
@@ -140,8 +162,9 @@ const servidoresSimulados = [
   },
 ];
 
-// Obtener todos los servidores incluyendo estado real del VPS
+// Ruta para obtener todos los servidores
 app.get("/api/servidores", verificarToken, async (req, res) => {
+  // Añadimos datos simulados de CPU y RAM
   const simuladosConDatos = servidoresSimulados.map((s) => {
     const cpu =
       s.estado === "online" ? `${Math.floor(Math.random() * 40) + 10}%` : "0%";
@@ -153,6 +176,7 @@ app.get("/api/servidores", verificarToken, async (req, res) => {
   });
 
   try {
+    // Actualizamos estado real del VPS
     const estadoVPS = await hetzner.obtenerEstadoVPS();
     vpsReal.estado = estadoVPS.estado;
     vpsReal.ip = estadoVPS.ip;
@@ -168,7 +192,7 @@ app.get("/api/servidores", verificarToken, async (req, res) => {
   res.json([vpsReal, ...simuladosConDatos]);
 });
 
-// Encender servidor
+// Ruta para encender un servidor (real o simulado)
 app.post("/api/servidores/:id/encender", verificarToken, async (req, res) => {
   const id = req.params.id;
 
@@ -191,7 +215,7 @@ app.post("/api/servidores/:id/encender", verificarToken, async (req, res) => {
   res.json({ mensaje: `Servidor ${servidor.nombre} encendido` });
 });
 
-// Apagar servidor
+// Ruta para apagar un servidor (real o simulado)
 app.post("/api/servidores/:id/apagar", verificarToken, async (req, res) => {
   const id = req.params.id;
 
@@ -214,18 +238,15 @@ app.post("/api/servidores/:id/apagar", verificarToken, async (req, res) => {
   res.json({ mensaje: `Servidor ${servidor.nombre} apagado` });
 });
 
-// Reiniciar servidor
-
+// Ruta para reiniciar un servidor
 app.post("/api/servidores/:id/reiniciar", verificarToken, async (req, res) => {
   const id = req.params.id;
-
-  // Función auxiliar para esperar
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   if (id === "local-pc") {
     try {
       await hetzner.apagarVPS();
-      await sleep(10000); // Esperar 10 segundos
+      await sleep(10000); // Esperamos 10 segundos
       await hetzner.encenderVPS();
       return res.json({ mensaje: "VPS Real reiniciado" });
     } catch (err) {
@@ -236,7 +257,6 @@ app.post("/api/servidores/:id/reiniciar", verificarToken, async (req, res) => {
     }
   }
 
-  // Reiniciar un servidor simulado
   const servidor = servidoresSimulados.find((s) => s.id === parseInt(id));
   if (!servidor)
     return res.status(404).json({ mensaje: "Servidor no encontrado" });
@@ -248,7 +268,7 @@ app.post("/api/servidores/:id/reiniciar", verificarToken, async (req, res) => {
   res.json({ mensaje: `Servidor ${servidor.nombre} reiniciado` });
 });
 
-// SSH
+// Ruta para ejecutar comandos por SSH (modo desarrollo)
 app.post("/api/ssh", verificarToken, async (req, res) => {
   const { comando } = req.body;
   if (!comando) return res.status(400).json({ error: "Comando vacío" });
@@ -256,6 +276,7 @@ app.post("/api/ssh", verificarToken, async (req, res) => {
   const ssh = new NodeSSH();
 
   try {
+    // Leemos la clave privada
     const privateKey = fs.readFileSync("/root/.ssh/id_rsa", "utf8");
 
     await ssh.connect({
@@ -264,6 +285,7 @@ app.post("/api/ssh", verificarToken, async (req, res) => {
       privateKey: privateKey,
     });
 
+    // Ejecutamos el comando
     const resultado = await ssh.execCommand(comando);
     console.log("Salida:", resultado.stdout);
     console.log("Error:", resultado.stderr);
@@ -274,14 +296,16 @@ app.post("/api/ssh", verificarToken, async (req, res) => {
   }
 });
 
-// Iniciar servidor Express
+// Ruta raíz para verificar que el backend está activo
+app.get("/", (req, res) => {
+  res.send("Backend funcionando correctamente");
+});
+
+// Inicia el servidor Express escuchando en todas las IPs
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`API corriendo en http://0.0.0.0:${PORT}`);
 });
 
-app.get("/", (req, res) => {
-  res.send("Backend funcionando correctamente");
-});
 
 // Este archivo es el backend de la aplicación. Aquí se configuran las rutas y se manejan las peticiones HTTP.
 // Se utiliza Express para crear un servidor que escucha en el puerto definido en la variable PORT.
